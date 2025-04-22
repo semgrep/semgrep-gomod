@@ -1,6 +1,6 @@
 (executable
-  (package tree-sitter-lang)
+  (package tree-sitter-lang-pro)
   (public_name parse-gomod)
   (name Main)
-  (libraries tree-sitter-lang.gomod)
+  (libraries tree-sitter-lang-pro.gomod)
 )
