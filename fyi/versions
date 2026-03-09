@@ -2,29 +2,27 @@ File: semgrep-grammars/src/tree-sitter-go-mod/LICENSE
 Git repo name: tree-sitter-go-mod
 Latest commit in repo: 6efb59652d30e0e9cd5f3b3a669afd6f1a926d3c
 Last change in file:
-  commit 6efb59652d30e0e9cd5f3b3a669afd6f1a926d3c
+  commit 2dfd6b7d3a4cfedc52e5eaa3cc497f419e628ebb
   Author: Camden Cheek <camden@ccheek.com>
-  Date:   Sun Jan 12 09:13:14 2025 -0700
+  Date:   Tue May 11 20:42:18 2021 -0600
   
-      Merge pull request #21 from ConradIrwin/add-tool-directives
-      
-      Add tool directives
+      Add MIT license
 ---
 File: semgrep-grammars/src/tree-sitter-go-mod/grammar.js
 Git repo name: tree-sitter-go-mod
 Latest commit in repo: 6efb59652d30e0e9cd5f3b3a669afd6f1a926d3c
 Last change in file:
-  commit 6efb59652d30e0e9cd5f3b3a669afd6f1a926d3c
-  Author: Camden Cheek <camden@ccheek.com>
-  Date:   Sun Jan 12 09:13:14 2025 -0700
+  commit 17528197c805898b3c8c8a96e491ff4ef991f9b6
+  Author: Conrad Irwin <conrad.irwin@gmail.com>
+  Date:   Fri Jan 10 18:15:57 2025 -0700
   
-      Merge pull request #21 from ConradIrwin/add-tool-directives
+      Add go1.24 tool directives
       
-      Add tool directives
+      See https://tip.golang.org/doc/go1.24#tools for more information on this
 ---
 File: semgrep-grammars/src/semgrep-gomod/grammar.js
 Git repo name: ocaml-tree-sitter-semgrep
-Latest commit in repo: c0f7e6ec0a1db1a1d53fa248b3de7de4cfbec152
+Latest commit in repo: c869123493a655eeb61c380361f27b036fd71dc1
 Last change in file:
   commit 8e73b349b6539033d6e96c42a44ecacff00d3f66
   Author: Brandon Wu <49291449+brandonspark@users.noreply.github.com>
