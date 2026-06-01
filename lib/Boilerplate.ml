@@ -19,20 +19,25 @@ let token (env : env) (tok : Tree_sitter_run.Token.t) =
 let blank (env : env) () =
   R.Tuple []
 
-let map_raw_string_literal (env : env) (tok : CST.raw_string_literal) =
-  (* raw_string_literal *) token env tok
+let map_pat_4fd4a56 (env : env) (tok : CST.pat_4fd4a56) =
+  (* pattern .* *) token env tok
 
 let map_identifier (env : env) (tok : CST.identifier) =
   (* identifier *) token env tok
 
+let map_raw_string_literal (env : env) (tok : CST.raw_string_literal) =
+  (* raw_string_literal *) token env tok
+
 let map_imm_tok_prec_p1_pat_101b4f2 (env : env) (tok : CST.imm_tok_prec_p1_pat_101b4f2) =
   (* pattern "[^\"\\n\\\\]+" *) token env tok
 
-let map_pat_4fd4a56 (env : env) (tok : CST.pat_4fd4a56) =
-  (* pattern .* *) token env tok
-
 let map_escape_sequence (env : env) (tok : CST.escape_sequence) =
   (* escape_sequence *) token env tok
+
+let map_ignore_spec (env : env) ((v1, v2) : CST.ignore_spec) =
+  let v1 = (* identifier *) token env v1 in
+  let v2 = (* "\n" *) token env v2 in
+  R.Tuple [v1; v2]
 
 let map_string_literal (env : env) (x : CST.string_literal) =
   (match x with
@@ -68,32 +73,39 @@ let map_string_or_ident (env : env) (x : CST.string_or_ident) =
     )
   )
 
+let map_version (env : env) (x : CST.version) =
+  map_string_or_ident env x
+
 let map_module_path (env : env) (x : CST.module_path) =
   map_string_or_ident env x
 
 let map_tool (env : env) (x : CST.tool) =
   map_string_or_ident env x
 
-let map_toolchain_name (env : env) (x : CST.toolchain_name) =
-  map_string_or_ident env x
-
-let map_version (env : env) (x : CST.version) =
-  map_string_or_ident env x
-
 let map_go_version (env : env) (x : CST.go_version) =
   map_string_or_ident env x
 
-let map_require_spec (env : env) ((v1, v2, v3) : CST.require_spec) =
-  let v1 = map_module_path env v1 in
-  let v2 = map_version env v2 in
-  let v3 = (* "\n" *) token env v3 in
-  R.Tuple [v1; v2; v3]
+let map_toolchain_name (env : env) (x : CST.toolchain_name) =
+  map_string_or_ident env x
 
-let map_exclude_spec (env : env) ((v1, v2, v3) : CST.exclude_spec) =
-  let v1 = map_module_path env v1 in
-  let v2 = map_version env v2 in
-  let v3 = (* "\n" *) token env v3 in
-  R.Tuple [v1; v2; v3]
+let map_retract_spec (env : env) ((v1, v2) : CST.retract_spec) =
+  let v1 =
+    (match v1 with
+    | `LBRACK_vers_COMMA_vers_RBRACK (v1, v2, v3, v4, v5) -> R.Case ("LBRACK_vers_COMMA_vers_RBRACK",
+        let v1 = (* "[" *) token env v1 in
+        let v2 = map_version env v2 in
+        let v3 = (* "," *) token env v3 in
+        let v4 = map_version env v4 in
+        let v5 = (* "]" *) token env v5 in
+        R.Tuple [v1; v2; v3; v4; v5]
+      )
+    | `Vers x -> R.Case ("Vers",
+        map_version env x
+      )
+    )
+  in
+  let v2 = (* "\n" *) token env v2 in
+  R.Tuple [v1; v2]
 
 let map_replace_spec (env : env) (x : CST.replace_spec) =
   (match x with
@@ -128,24 +140,17 @@ let map_replace_spec (env : env) (x : CST.replace_spec) =
     )
   )
 
-let map_retract_spec (env : env) ((v1, v2) : CST.retract_spec) =
-  let v1 =
-    (match v1 with
-    | `LBRACK_vers_COMMA_vers_RBRACK (v1, v2, v3, v4, v5) -> R.Case ("LBRACK_vers_COMMA_vers_RBRACK",
-        let v1 = (* "[" *) token env v1 in
-        let v2 = map_version env v2 in
-        let v3 = (* "," *) token env v3 in
-        let v4 = map_version env v4 in
-        let v5 = (* "]" *) token env v5 in
-        R.Tuple [v1; v2; v3; v4; v5]
-      )
-    | `Vers x -> R.Case ("Vers",
-        map_version env x
-      )
-    )
-  in
-  let v2 = (* "\n" *) token env v2 in
-  R.Tuple [v1; v2]
+let map_exclude_spec (env : env) ((v1, v2, v3) : CST.exclude_spec) =
+  let v1 = map_module_path env v1 in
+  let v2 = map_version env v2 in
+  let v3 = (* "\n" *) token env v3 in
+  R.Tuple [v1; v2; v3]
+
+let map_require_spec (env : env) ((v1, v2, v3) : CST.require_spec) =
+  let v1 = map_module_path env v1 in
+  let v2 = map_version env v2 in
+  let v3 = (* "\n" *) token env v3 in
+  R.Tuple [v1; v2; v3]
 
 let map_directive (env : env) (x : CST.directive) =
   (match x with
@@ -269,6 +274,25 @@ let map_directive (env : env) (x : CST.directive) =
           )
         | `Retr_spec x -> R.Case ("Retr_spec",
             map_retract_spec env x
+          )
+        )
+      in
+      R.Tuple [v1; v2]
+    )
+  | `Ignore_dire (v1, v2) -> R.Case ("Ignore_dire",
+      let v1 = (* "ignore" *) token env v1 in
+      let v2 =
+        (match v2 with
+        | `LPAR_LF_rep_ignore_spec_RPAR_LF (v1, v2, v3, v4, v5) -> R.Case ("LPAR_LF_rep_ignore_spec_RPAR_LF",
+            let v1 = (* "(" *) token env v1 in
+            let v2 = (* "\n" *) token env v2 in
+            let v3 = R.List (List.map (map_ignore_spec env) v3) in
+            let v4 = (* ")" *) token env v4 in
+            let v5 = (* "\n" *) token env v5 in
+            R.Tuple [v1; v2; v3; v4; v5]
+          )
+        | `Ignore_spec x -> R.Case ("Ignore_spec",
+            map_ignore_spec env x
           )
         )
       in
