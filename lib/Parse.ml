@@ -31,12 +31,11 @@ let extras = [
 ]
 
 let children_regexps : (string * Run.exp option) list = [
-  "raw_string_literal", None;
-  "identifier", None;
-  "imm_tok_prec_p1_pat_101b4f2", None;
   "pat_4fd4a56", None;
+  "identifier", None;
+  "raw_string_literal", None;
+  "imm_tok_prec_p1_pat_101b4f2", None;
   "escape_sequence", None;
-  "file_path", Some (Token (Name "identifier"););
   "comment",
   Some (
     Seq [
@@ -44,6 +43,7 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "pat_4fd4a56");
     ];
   );
+  "file_path", Some (Token (Name "identifier"););
   "interpreted_string_literal",
   Some (
     Seq [
@@ -57,12 +57,37 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Literal "\"");
     ];
   );
+  "ignore_spec",
+  Some (
+    Seq [
+      Token (Name "file_path");
+      Token (Literal "\n");
+    ];
+  );
   "string_literal",
   Some (
     Alt [|
       Token (Name "raw_string_literal");
       Token (Name "interpreted_string_literal");
     |];
+  );
+  "ignore_directive",
+  Some (
+    Seq [
+      Token (Literal "ignore");
+      Alt [|
+        Seq [
+          Token (Literal "(");
+          Token (Literal "\n");
+          Repeat (
+            Token (Name "ignore_spec");
+          );
+          Token (Literal ")");
+          Token (Literal "\n");
+        ];
+        Token (Name "ignore_spec");
+      |];
+    ];
   );
   "string_or_ident",
   Some (
@@ -71,65 +96,24 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "identifier");
     |];
   );
+  "version", Some (Token (Name "string_or_ident"););
   "module_path", Some (Token (Name "string_or_ident"););
   "tool", Some (Token (Name "string_or_ident"););
-  "toolchain_name", Some (Token (Name "string_or_ident"););
-  "version", Some (Token (Name "string_or_ident"););
   "go_version", Some (Token (Name "string_or_ident"););
-  "module_directive",
+  "toolchain_name", Some (Token (Name "string_or_ident"););
+  "retract_spec",
   Some (
     Seq [
-      Token (Literal "module");
       Alt [|
-        Token (Name "module_path");
         Seq [
-          Token (Literal "(");
-          Token (Literal "\n");
-          Token (Name "module_path");
-          Token (Literal "\n");
-          Token (Literal ")");
+          Token (Literal "[");
+          Token (Name "version");
+          Token (Literal ",");
+          Token (Name "version");
+          Token (Literal "]");
         ];
+        Token (Name "version");
       |];
-    ];
-  );
-  "tool_directive",
-  Some (
-    Seq [
-      Token (Literal "tool");
-      Alt [|
-        Token (Name "tool");
-        Seq [
-          Token (Literal "(");
-          Token (Literal "\n");
-          Repeat (
-            Token (Name "tool");
-          );
-          Token (Literal ")");
-          Token (Literal "\n");
-        ];
-      |];
-    ];
-  );
-  "toolchain_directive",
-  Some (
-    Seq [
-      Token (Literal "toolchain");
-      Token (Name "toolchain_name");
-    ];
-  );
-  "require_spec",
-  Some (
-    Seq [
-      Token (Name "module_path");
-      Token (Name "version");
-      Token (Literal "\n");
-    ];
-  );
-  "exclude_spec",
-  Some (
-    Seq [
-      Token (Name "module_path");
-      Token (Name "version");
       Token (Literal "\n");
     ];
   );
@@ -157,20 +141,54 @@ let children_regexps : (string * Run.exp option) list = [
       ];
     |];
   );
-  "retract_spec",
+  "exclude_spec",
   Some (
     Seq [
-      Alt [|
-        Seq [
-          Token (Literal "[");
-          Token (Name "version");
-          Token (Literal ",");
-          Token (Name "version");
-          Token (Literal "]");
-        ];
-        Token (Name "version");
-      |];
+      Token (Name "module_path");
+      Token (Name "version");
       Token (Literal "\n");
+    ];
+  );
+  "module_directive",
+  Some (
+    Seq [
+      Token (Literal "module");
+      Alt [|
+        Token (Name "module_path");
+        Seq [
+          Token (Literal "(");
+          Token (Literal "\n");
+          Token (Name "module_path");
+          Token (Literal "\n");
+          Token (Literal ")");
+        ];
+      |];
+    ];
+  );
+  "require_spec",
+  Some (
+    Seq [
+      Token (Name "module_path");
+      Token (Name "version");
+      Token (Literal "\n");
+    ];
+  );
+  "tool_directive",
+  Some (
+    Seq [
+      Token (Literal "tool");
+      Alt [|
+        Token (Name "tool");
+        Seq [
+          Token (Literal "(");
+          Token (Literal "\n");
+          Repeat (
+            Token (Name "tool");
+          );
+          Token (Literal ")");
+          Token (Literal "\n");
+        ];
+      |];
     ];
   );
   "go_directive",
@@ -181,17 +199,42 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Literal "\n");
     ];
   );
-  "require_directive",
+  "toolchain_directive",
   Some (
     Seq [
-      Token (Literal "require");
+      Token (Literal "toolchain");
+      Token (Name "toolchain_name");
+    ];
+  );
+  "retract_directive",
+  Some (
+    Seq [
+      Token (Literal "retract");
       Alt [|
-        Token (Name "require_spec");
         Seq [
           Token (Literal "(");
           Token (Literal "\n");
           Repeat (
-            Token (Name "require_spec");
+            Token (Name "retract_spec");
+          );
+          Token (Literal ")");
+          Token (Literal "\n");
+        ];
+        Token (Name "retract_spec");
+      |];
+    ];
+  );
+  "replace_directive",
+  Some (
+    Seq [
+      Token (Literal "replace");
+      Alt [|
+        Token (Name "replace_spec");
+        Seq [
+          Token (Literal "(");
+          Token (Literal "\n");
+          Repeat (
+            Token (Name "replace_spec");
           );
           Token (Literal ")");
           Token (Literal "\n");
@@ -217,39 +260,21 @@ let children_regexps : (string * Run.exp option) list = [
       |];
     ];
   );
-  "replace_directive",
+  "require_directive",
   Some (
     Seq [
-      Token (Literal "replace");
+      Token (Literal "require");
       Alt [|
-        Token (Name "replace_spec");
+        Token (Name "require_spec");
         Seq [
           Token (Literal "(");
           Token (Literal "\n");
           Repeat (
-            Token (Name "replace_spec");
+            Token (Name "require_spec");
           );
           Token (Literal ")");
           Token (Literal "\n");
         ];
-      |];
-    ];
-  );
-  "retract_directive",
-  Some (
-    Seq [
-      Token (Literal "retract");
-      Alt [|
-        Seq [
-          Token (Literal "(");
-          Token (Literal "\n");
-          Repeat (
-            Token (Name "retract_spec");
-          );
-          Token (Literal ")");
-          Token (Literal "\n");
-        ];
-        Token (Name "retract_spec");
       |];
     ];
   );
@@ -264,6 +289,7 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "exclude_directive");
       Token (Name "replace_directive");
       Token (Name "retract_directive");
+      Token (Name "ignore_directive");
     |];
   );
   "source_file",
@@ -274,7 +300,7 @@ let children_regexps : (string * Run.exp option) list = [
   );
 ]
 
-let trans_raw_string_literal ((kind, body) : mt) : CST.raw_string_literal =
+let trans_pat_4fd4a56 ((kind, body) : mt) : CST.pat_4fd4a56 =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -284,12 +310,12 @@ let trans_identifier ((kind, body) : mt) : CST.identifier =
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_imm_tok_prec_p1_pat_101b4f2 ((kind, body) : mt) : CST.imm_tok_prec_p1_pat_101b4f2 =
+let trans_raw_string_literal ((kind, body) : mt) : CST.raw_string_literal =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_4fd4a56 ((kind, body) : mt) : CST.pat_4fd4a56 =
+let trans_imm_tok_prec_p1_pat_101b4f2 ((kind, body) : mt) : CST.imm_tok_prec_p1_pat_101b4f2 =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -298,12 +324,6 @@ let trans_escape_sequence ((kind, body) : mt) : CST.escape_sequence =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
-
-let trans_file_path ((kind, body) : mt) : CST.file_path =
-  match body with
-  | Children v ->
-      trans_identifier (Run.matcher_token v)
-  | Leaf _ -> assert false
 
 let trans_comment ((kind, body) : mt) : CST.comment =
   match body with
@@ -316,6 +336,12 @@ let trans_comment ((kind, body) : mt) : CST.comment =
           )
       | _ -> assert false
       )
+  | Leaf _ -> assert false
+
+let trans_file_path ((kind, body) : mt) : CST.file_path =
+  match body with
+  | Children v ->
+      trans_identifier (Run.matcher_token v)
   | Leaf _ -> assert false
 
 let trans_interpreted_string_literal ((kind, body) : mt) : CST.interpreted_string_literal =
@@ -347,6 +373,19 @@ let trans_interpreted_string_literal ((kind, body) : mt) : CST.interpreted_strin
       )
   | Leaf _ -> assert false
 
+let trans_ignore_spec ((kind, body) : mt) : CST.ignore_spec =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1] ->
+          (
+            trans_file_path (Run.matcher_token v0),
+            Run.trans_token (Run.matcher_token v1)
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
 let trans_string_literal ((kind, body) : mt) : CST.string_literal =
   match body with
   | Children v ->
@@ -358,6 +397,42 @@ let trans_string_literal ((kind, body) : mt) : CST.string_literal =
       | Alt (1, v) ->
           `Inte_str_lit (
             trans_interpreted_string_literal (Run.matcher_token v)
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+let trans_ignore_directive ((kind, body) : mt) : CST.ignore_directive =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1] ->
+          (
+            Run.trans_token (Run.matcher_token v0),
+            (match v1 with
+            | Alt (0, v) ->
+                `LPAR_LF_rep_ignore_spec_RPAR_LF (
+                  (match v with
+                  | Seq [v0; v1; v2; v3; v4] ->
+                      (
+                        Run.trans_token (Run.matcher_token v0),
+                        Run.trans_token (Run.matcher_token v1),
+                        Run.repeat
+                          (fun v -> trans_ignore_spec (Run.matcher_token v))
+                          v2
+                        ,
+                        Run.trans_token (Run.matcher_token v3),
+                        Run.trans_token (Run.matcher_token v4)
+                      )
+                  | _ -> assert false
+                  )
+                )
+            | Alt (1, v) ->
+                `Ignore_spec (
+                  trans_ignore_spec (Run.matcher_token v)
+                )
+            | _ -> assert false
+            )
           )
       | _ -> assert false
       )
@@ -379,6 +454,12 @@ let trans_string_or_ident ((kind, body) : mt) : CST.string_or_ident =
       )
   | Leaf _ -> assert false
 
+let trans_version ((kind, body) : mt) : CST.version =
+  match body with
+  | Children v ->
+      trans_string_or_ident (Run.matcher_token v)
+  | Leaf _ -> assert false
+
 let trans_module_path ((kind, body) : mt) : CST.module_path =
   match body with
   | Children v ->
@@ -391,129 +472,47 @@ let trans_tool ((kind, body) : mt) : CST.tool =
       trans_string_or_ident (Run.matcher_token v)
   | Leaf _ -> assert false
 
-let trans_toolchain_name ((kind, body) : mt) : CST.toolchain_name =
-  match body with
-  | Children v ->
-      trans_string_or_ident (Run.matcher_token v)
-  | Leaf _ -> assert false
-
-let trans_version ((kind, body) : mt) : CST.version =
-  match body with
-  | Children v ->
-      trans_string_or_ident (Run.matcher_token v)
-  | Leaf _ -> assert false
-
 let trans_go_version ((kind, body) : mt) : CST.go_version =
   match body with
   | Children v ->
       trans_string_or_ident (Run.matcher_token v)
   | Leaf _ -> assert false
 
-let trans_module_directive ((kind, body) : mt) : CST.module_directive =
+let trans_toolchain_name ((kind, body) : mt) : CST.toolchain_name =
+  match body with
+  | Children v ->
+      trans_string_or_ident (Run.matcher_token v)
+  | Leaf _ -> assert false
+
+let trans_retract_spec ((kind, body) : mt) : CST.retract_spec =
   match body with
   | Children v ->
       (match v with
       | Seq [v0; v1] ->
           (
-            Run.trans_token (Run.matcher_token v0),
-            (match v1 with
+            (match v0 with
             | Alt (0, v) ->
-                `Module_path (
-                  trans_module_path (Run.matcher_token v)
-                )
-            | Alt (1, v) ->
-                `LPAR_LF_module_path_LF_RPAR (
+                `LBRACK_vers_COMMA_vers_RBRACK (
                   (match v with
                   | Seq [v0; v1; v2; v3; v4] ->
                       (
                         Run.trans_token (Run.matcher_token v0),
-                        Run.trans_token (Run.matcher_token v1),
-                        trans_module_path (Run.matcher_token v2),
-                        Run.trans_token (Run.matcher_token v3),
+                        trans_version (Run.matcher_token v1),
+                        Run.trans_token (Run.matcher_token v2),
+                        trans_version (Run.matcher_token v3),
                         Run.trans_token (Run.matcher_token v4)
                       )
                   | _ -> assert false
                   )
                 )
-            | _ -> assert false
-            )
-          )
-      | _ -> assert false
-      )
-  | Leaf _ -> assert false
-
-let trans_tool_directive ((kind, body) : mt) : CST.tool_directive =
-  match body with
-  | Children v ->
-      (match v with
-      | Seq [v0; v1] ->
-          (
-            Run.trans_token (Run.matcher_token v0),
-            (match v1 with
-            | Alt (0, v) ->
-                `Tool (
-                  trans_tool (Run.matcher_token v)
-                )
             | Alt (1, v) ->
-                `LPAR_LF_rep_tool_RPAR_LF (
-                  (match v with
-                  | Seq [v0; v1; v2; v3; v4] ->
-                      (
-                        Run.trans_token (Run.matcher_token v0),
-                        Run.trans_token (Run.matcher_token v1),
-                        Run.repeat
-                          (fun v -> trans_tool (Run.matcher_token v))
-                          v2
-                        ,
-                        Run.trans_token (Run.matcher_token v3),
-                        Run.trans_token (Run.matcher_token v4)
-                      )
-                  | _ -> assert false
-                  )
+                `Vers (
+                  trans_version (Run.matcher_token v)
                 )
             | _ -> assert false
             )
-          )
-      | _ -> assert false
-      )
-  | Leaf _ -> assert false
-
-let trans_toolchain_directive ((kind, body) : mt) : CST.toolchain_directive =
-  match body with
-  | Children v ->
-      (match v with
-      | Seq [v0; v1] ->
-          (
-            Run.trans_token (Run.matcher_token v0),
-            trans_toolchain_name (Run.matcher_token v1)
-          )
-      | _ -> assert false
-      )
-  | Leaf _ -> assert false
-
-let trans_require_spec ((kind, body) : mt) : CST.require_spec =
-  match body with
-  | Children v ->
-      (match v with
-      | Seq [v0; v1; v2] ->
-          (
-            trans_module_path (Run.matcher_token v0),
-            trans_version (Run.matcher_token v1),
-            Run.trans_token (Run.matcher_token v2)
-          )
-      | _ -> assert false
-      )
-  | Leaf _ -> assert false
-
-let trans_exclude_spec ((kind, body) : mt) : CST.exclude_spec =
-  match body with
-  | Children v ->
-      (match v with
-      | Seq [v0; v1; v2] ->
-          (
-            trans_module_path (Run.matcher_token v0),
-            trans_version (Run.matcher_token v1),
-            Run.trans_token (Run.matcher_token v2)
+            ,
+            Run.trans_token (Run.matcher_token v1)
           )
       | _ -> assert false
       )
@@ -562,35 +561,98 @@ let trans_replace_spec ((kind, body) : mt) : CST.replace_spec =
       )
   | Leaf _ -> assert false
 
-let trans_retract_spec ((kind, body) : mt) : CST.retract_spec =
+let trans_exclude_spec ((kind, body) : mt) : CST.exclude_spec =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1; v2] ->
+          (
+            trans_module_path (Run.matcher_token v0),
+            trans_version (Run.matcher_token v1),
+            Run.trans_token (Run.matcher_token v2)
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+let trans_module_directive ((kind, body) : mt) : CST.module_directive =
   match body with
   | Children v ->
       (match v with
       | Seq [v0; v1] ->
           (
-            (match v0 with
+            Run.trans_token (Run.matcher_token v0),
+            (match v1 with
             | Alt (0, v) ->
-                `LBRACK_vers_COMMA_vers_RBRACK (
+                `Module_path (
+                  trans_module_path (Run.matcher_token v)
+                )
+            | Alt (1, v) ->
+                `LPAR_LF_module_path_LF_RPAR (
                   (match v with
                   | Seq [v0; v1; v2; v3; v4] ->
                       (
                         Run.trans_token (Run.matcher_token v0),
-                        trans_version (Run.matcher_token v1),
-                        Run.trans_token (Run.matcher_token v2),
-                        trans_version (Run.matcher_token v3),
+                        Run.trans_token (Run.matcher_token v1),
+                        trans_module_path (Run.matcher_token v2),
+                        Run.trans_token (Run.matcher_token v3),
                         Run.trans_token (Run.matcher_token v4)
                       )
                   | _ -> assert false
                   )
                 )
+            | _ -> assert false
+            )
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+let trans_require_spec ((kind, body) : mt) : CST.require_spec =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1; v2] ->
+          (
+            trans_module_path (Run.matcher_token v0),
+            trans_version (Run.matcher_token v1),
+            Run.trans_token (Run.matcher_token v2)
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+let trans_tool_directive ((kind, body) : mt) : CST.tool_directive =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1] ->
+          (
+            Run.trans_token (Run.matcher_token v0),
+            (match v1 with
+            | Alt (0, v) ->
+                `Tool (
+                  trans_tool (Run.matcher_token v)
+                )
             | Alt (1, v) ->
-                `Vers (
-                  trans_version (Run.matcher_token v)
+                `LPAR_LF_rep_tool_RPAR_LF (
+                  (match v with
+                  | Seq [v0; v1; v2; v3; v4] ->
+                      (
+                        Run.trans_token (Run.matcher_token v0),
+                        Run.trans_token (Run.matcher_token v1),
+                        Run.repeat
+                          (fun v -> trans_tool (Run.matcher_token v))
+                          v2
+                        ,
+                        Run.trans_token (Run.matcher_token v3),
+                        Run.trans_token (Run.matcher_token v4)
+                      )
+                  | _ -> assert false
+                  )
                 )
             | _ -> assert false
             )
-            ,
-            Run.trans_token (Run.matcher_token v1)
           )
       | _ -> assert false
       )
@@ -610,7 +672,20 @@ let trans_go_directive ((kind, body) : mt) : CST.go_directive =
       )
   | Leaf _ -> assert false
 
-let trans_require_directive ((kind, body) : mt) : CST.require_directive =
+let trans_toolchain_directive ((kind, body) : mt) : CST.toolchain_directive =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1] ->
+          (
+            Run.trans_token (Run.matcher_token v0),
+            trans_toolchain_name (Run.matcher_token v1)
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+let trans_retract_directive ((kind, body) : mt) : CST.retract_directive =
   match body with
   | Children v ->
       (match v with
@@ -619,18 +694,54 @@ let trans_require_directive ((kind, body) : mt) : CST.require_directive =
             Run.trans_token (Run.matcher_token v0),
             (match v1 with
             | Alt (0, v) ->
-                `Requ_spec (
-                  trans_require_spec (Run.matcher_token v)
-                )
-            | Alt (1, v) ->
-                `LPAR_LF_rep_requ_spec_RPAR_LF (
+                `LPAR_LF_rep_retr_spec_RPAR_LF (
                   (match v with
                   | Seq [v0; v1; v2; v3; v4] ->
                       (
                         Run.trans_token (Run.matcher_token v0),
                         Run.trans_token (Run.matcher_token v1),
                         Run.repeat
-                          (fun v -> trans_require_spec (Run.matcher_token v))
+                          (fun v -> trans_retract_spec (Run.matcher_token v))
+                          v2
+                        ,
+                        Run.trans_token (Run.matcher_token v3),
+                        Run.trans_token (Run.matcher_token v4)
+                      )
+                  | _ -> assert false
+                  )
+                )
+            | Alt (1, v) ->
+                `Retr_spec (
+                  trans_retract_spec (Run.matcher_token v)
+                )
+            | _ -> assert false
+            )
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+let trans_replace_directive ((kind, body) : mt) : CST.replace_directive =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1] ->
+          (
+            Run.trans_token (Run.matcher_token v0),
+            (match v1 with
+            | Alt (0, v) ->
+                `Repl_spec (
+                  trans_replace_spec (Run.matcher_token v)
+                )
+            | Alt (1, v) ->
+                `LPAR_LF_rep_repl_spec_RPAR_LF (
+                  (match v with
+                  | Seq [v0; v1; v2; v3; v4] ->
+                      (
+                        Run.trans_token (Run.matcher_token v0),
+                        Run.trans_token (Run.matcher_token v1),
+                        Run.repeat
+                          (fun v -> trans_replace_spec (Run.matcher_token v))
                           v2
                         ,
                         Run.trans_token (Run.matcher_token v3),
@@ -682,7 +793,7 @@ let trans_exclude_directive ((kind, body) : mt) : CST.exclude_directive =
       )
   | Leaf _ -> assert false
 
-let trans_replace_directive ((kind, body) : mt) : CST.replace_directive =
+let trans_require_directive ((kind, body) : mt) : CST.require_directive =
   match body with
   | Children v ->
       (match v with
@@ -691,18 +802,18 @@ let trans_replace_directive ((kind, body) : mt) : CST.replace_directive =
             Run.trans_token (Run.matcher_token v0),
             (match v1 with
             | Alt (0, v) ->
-                `Repl_spec (
-                  trans_replace_spec (Run.matcher_token v)
+                `Requ_spec (
+                  trans_require_spec (Run.matcher_token v)
                 )
             | Alt (1, v) ->
-                `LPAR_LF_rep_repl_spec_RPAR_LF (
+                `LPAR_LF_rep_requ_spec_RPAR_LF (
                   (match v with
                   | Seq [v0; v1; v2; v3; v4] ->
                       (
                         Run.trans_token (Run.matcher_token v0),
                         Run.trans_token (Run.matcher_token v1),
                         Run.repeat
-                          (fun v -> trans_replace_spec (Run.matcher_token v))
+                          (fun v -> trans_require_spec (Run.matcher_token v))
                           v2
                         ,
                         Run.trans_token (Run.matcher_token v3),
@@ -710,42 +821,6 @@ let trans_replace_directive ((kind, body) : mt) : CST.replace_directive =
                       )
                   | _ -> assert false
                   )
-                )
-            | _ -> assert false
-            )
-          )
-      | _ -> assert false
-      )
-  | Leaf _ -> assert false
-
-let trans_retract_directive ((kind, body) : mt) : CST.retract_directive =
-  match body with
-  | Children v ->
-      (match v with
-      | Seq [v0; v1] ->
-          (
-            Run.trans_token (Run.matcher_token v0),
-            (match v1 with
-            | Alt (0, v) ->
-                `LPAR_LF_rep_retr_spec_RPAR_LF (
-                  (match v with
-                  | Seq [v0; v1; v2; v3; v4] ->
-                      (
-                        Run.trans_token (Run.matcher_token v0),
-                        Run.trans_token (Run.matcher_token v1),
-                        Run.repeat
-                          (fun v -> trans_retract_spec (Run.matcher_token v))
-                          v2
-                        ,
-                        Run.trans_token (Run.matcher_token v3),
-                        Run.trans_token (Run.matcher_token v4)
-                      )
-                  | _ -> assert false
-                  )
-                )
-            | Alt (1, v) ->
-                `Retr_spec (
-                  trans_retract_spec (Run.matcher_token v)
                 )
             | _ -> assert false
             )
@@ -789,6 +864,10 @@ let trans_directive ((kind, body) : mt) : CST.directive =
       | Alt (7, v) ->
           `Retr_dire (
             trans_retract_directive (Run.matcher_token v)
+          )
+      | Alt (8, v) ->
+          `Ignore_dire (
+            trans_ignore_directive (Run.matcher_token v)
           )
       | _ -> assert false
       )

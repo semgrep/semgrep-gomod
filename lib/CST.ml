@@ -8,15 +8,17 @@
 open! Sexplib.Conv
 open Tree_sitter_run
 
-type raw_string_literal = Token.t
+type pat_4fd4a56 = Token.t (* pattern .* *)
 
 type identifier = Token.t
 
+type raw_string_literal = Token.t
+
 type imm_tok_prec_p1_pat_101b4f2 = Token.t (* pattern "[^\"\\n\\\\]+" *)
 
-type pat_4fd4a56 = Token.t (* pattern .* *)
-
 type escape_sequence = Token.t
+
+type ignore_spec = (identifier (*tok*) * Token.t (* "\n" *))
 
 type string_literal = [
     `Raw_str_lit of raw_string_literal (*tok*)
@@ -36,19 +38,26 @@ type string_or_ident = [
   | `Id of identifier (*tok*)
 ]
 
+type version = string_or_ident
+
 type module_path = string_or_ident
 
 type tool = string_or_ident
 
-type toolchain_name = string_or_ident
-
-type version = string_or_ident
-
 type go_version = string_or_ident
 
-type require_spec = (module_path * version * Token.t (* "\n" *))
+type toolchain_name = string_or_ident
 
-type exclude_spec = (module_path * version * Token.t (* "\n" *))
+type retract_spec = (
+    [
+        `LBRACK_vers_COMMA_vers_RBRACK of (
+            Token.t (* "[" *) * version * Token.t (* "," *) * version
+          * Token.t (* "]" *)
+        )
+      | `Vers of version
+    ]
+  * Token.t (* "\n" *)
+)
 
 type replace_spec = [
     `Module_path_opt_vers_EQGT_file_path_LF of (
@@ -68,16 +77,9 @@ type replace_spec = [
     )
 ]
 
-type retract_spec = (
-    [
-        `LBRACK_vers_COMMA_vers_RBRACK of (
-            Token.t (* "[" *) * version * Token.t (* "," *) * version
-          * Token.t (* "]" *)
-        )
-      | `Vers of version
-    ]
-  * Token.t (* "\n" *)
-)
+type exclude_spec = (module_path * version * Token.t (* "\n" *))
+
+type require_spec = (module_path * version * Token.t (* "\n" *))
 
 type directive = [
     `Module_dire of (
@@ -157,13 +159,26 @@ type directive = [
           | `Retr_spec of retract_spec
         ]
     )
+  | `Ignore_dire of (
+        Token.t (* "ignore" *)
+      * [
+            `LPAR_LF_rep_ignore_spec_RPAR_LF of (
+                Token.t (* "(" *)
+              * Token.t (* "\n" *)
+              * ignore_spec list (* zero or more *)
+              * Token.t (* ")" *)
+              * Token.t (* "\n" *)
+            )
+          | `Ignore_spec of ignore_spec
+        ]
+    )
 ]
 
 type source_file = directive list (* zero or more *)
 
-type file_path (* inlined *) = identifier (*tok*)
-
 type comment (* inlined *) = (Token.t (* "//" *) * pat_4fd4a56)
+
+type file_path (* inlined *) = identifier (*tok*)
 
 type interpreted_string_literal (* inlined *) = (
     Token.t (* "\"" *)
@@ -173,6 +188,20 @@ type interpreted_string_literal (* inlined *) = (
     ]
       list (* zero or more *)
   * Token.t (* "\"" *)
+)
+
+type ignore_directive (* inlined *) = (
+    Token.t (* "ignore" *)
+  * [
+        `LPAR_LF_rep_ignore_spec_RPAR_LF of (
+            Token.t (* "(" *)
+          * Token.t (* "\n" *)
+          * ignore_spec list (* zero or more *)
+          * Token.t (* ")" *)
+          * Token.t (* "\n" *)
+        )
+      | `Ignore_spec of ignore_spec
+    ]
 )
 
 type module_directive (* inlined *) = (
@@ -200,22 +229,36 @@ type tool_directive (* inlined *) = (
     ]
 )
 
-type toolchain_directive (* inlined *) = (
-    Token.t (* "toolchain" *) * toolchain_name
-)
-
 type go_directive (* inlined *) = (
     Token.t (* "go" *) * go_version * Token.t (* "\n" *)
 )
 
-type require_directive (* inlined *) = (
-    Token.t (* "require" *)
+type toolchain_directive (* inlined *) = (
+    Token.t (* "toolchain" *) * toolchain_name
+)
+
+type retract_directive (* inlined *) = (
+    Token.t (* "retract" *)
   * [
-        `Requ_spec of require_spec
-      | `LPAR_LF_rep_requ_spec_RPAR_LF of (
+        `LPAR_LF_rep_retr_spec_RPAR_LF of (
             Token.t (* "(" *)
           * Token.t (* "\n" *)
-          * require_spec list (* zero or more *)
+          * retract_spec list (* zero or more *)
+          * Token.t (* ")" *)
+          * Token.t (* "\n" *)
+        )
+      | `Retr_spec of retract_spec
+    ]
+)
+
+type replace_directive (* inlined *) = (
+    Token.t (* "replace" *)
+  * [
+        `Repl_spec of replace_spec
+      | `LPAR_LF_rep_repl_spec_RPAR_LF of (
+            Token.t (* "(" *)
+          * Token.t (* "\n" *)
+          * replace_spec list (* zero or more *)
           * Token.t (* ")" *)
           * Token.t (* "\n" *)
         )
@@ -236,31 +279,17 @@ type exclude_directive (* inlined *) = (
     ]
 )
 
-type replace_directive (* inlined *) = (
-    Token.t (* "replace" *)
+type require_directive (* inlined *) = (
+    Token.t (* "require" *)
   * [
-        `Repl_spec of replace_spec
-      | `LPAR_LF_rep_repl_spec_RPAR_LF of (
+        `Requ_spec of require_spec
+      | `LPAR_LF_rep_requ_spec_RPAR_LF of (
             Token.t (* "(" *)
           * Token.t (* "\n" *)
-          * replace_spec list (* zero or more *)
+          * require_spec list (* zero or more *)
           * Token.t (* ")" *)
           * Token.t (* "\n" *)
         )
-    ]
-)
-
-type retract_directive (* inlined *) = (
-    Token.t (* "retract" *)
-  * [
-        `LPAR_LF_rep_retr_spec_RPAR_LF of (
-            Token.t (* "(" *)
-          * Token.t (* "\n" *)
-          * retract_spec list (* zero or more *)
-          * Token.t (* ")" *)
-          * Token.t (* "\n" *)
-        )
-      | `Retr_spec of retract_spec
     ]
 )
 
